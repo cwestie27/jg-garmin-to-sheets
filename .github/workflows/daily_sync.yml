@@ -24,14 +24,24 @@ jobs:
 
       - name: Run Sync Script
         env:
-          # These pull from the Secrets you set up in Phase 2
-          USER1_GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
-          USER1_GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
-          USER1_SHEET_ID: ${{ secrets.SHEET_ID }}
-          # We write the JSON key to a temporary file so the script can read it
+          # We still load these to write them to the file below
+          GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
           GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
         run: |
-          # Create the auth file from the secret
+          # 1. Create the Auth JSON file
           echo "$GCP_CREDENTIALS" > service_account.json
-          # Run the script (this assumes the repo uses main.py)
-          python -m src.main
+
+          # 2. Create the .env file (The script looks for this specifically)
+          # We use "USER1_" because that is the default profile name in this script
+          echo "USER1_GARMIN_EMAIL=$GARMIN_EMAIL" >> .env
+          echo "USER1_GARMIN_PASSWORD=$GARMIN_PASSWORD" >> .env
+          echo "USER1_SHEET_ID=$SHEET_ID" >> .env
+          
+          # 3. Run the script with "Piped" input to bypass the menu
+          # The inputs being sent are:
+          # "2"      <- Select Google Sheets
+          # "USER1"  <- Select the profile we just made
+          # "N"      <- (Guess) If it asks "Edit dates?", say No to use defaults
+          printf "2\nUSER1\nN\n" | python -m src.main
