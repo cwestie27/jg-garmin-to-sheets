@@ -31,19 +31,8 @@ async def sync(email: str, password: str, start_date: date, end_date: date, outp
         await garmin_client.authenticate()
 
     except MFARequiredException as e:
-        mfa_code = typer.prompt("MFA code required. Please enter it now")
-        try:
-            await garmin_client.submit_mfa_code(mfa_code)
-        except Exception as mfa_error:
-            error_msg = str(mfa_error)
-            if "rate limiting" in error_msg.lower() or "wait" in error_msg.lower():
-                print(f"\n⚠️  {error_msg}")
-                print("Please try running the application again later.")
-                sys.exit(1)
-            else:
-                logger.error(f"MFA submission failed: {error_msg}")
-                print(f"\n❌ MFA authentication failed: {error_msg}")
-                sys.exit(1)
+        logger.error("MFA is required but cannot be entered in automated mode.")
+        sys.exit(1)
     
     except Exception as e:
         logger.error(f"Authentication failed: {e}", exc_info=True)
@@ -78,32 +67,10 @@ async def sync(email: str, password: str, start_date: date, end_date: date, outp
             logger.info("Google Sheets sync completed successfully!")
         
         except GoogleAuthTokenRefreshError as auth_error:
-            logger.warning(f"Google authentication error: {auth_error}")
-            print("\n" + "="*30)
-            print(" Google Authentication Issue")
-            print("="*30)
-            response = input("Google authentication token.pickle may be expired or invalid.\nDo you want to delete it and re-authenticate on the next run? [Y/N]: ").strip().lower()
-
-            if response == 'y':
-                logger.info("User chose to re-authenticate. Deleting token.pickle...")
-                token_path = Path('credentials/token.pickle')
-                if token_path.exists():
-                    try:
-                        token_path.unlink()
-                        logger.info(f"Deleted token file: {token_path}")
-                        print(f"\nToken file ({token_path}) has been removed.")
-                        print("Please re-run the application to re-authenticate with Google.")
-                    except OSError as e:
-                        logger.error(f"Error deleting token file {token_path}: {e}")
-                        print(f"\nError deleting token file: {e}. Please delete it manually and re-run.")
-                else:
-                    logger.warning(f"Token file not found at {token_path}, cannot delete.")
-                    print("\nToken file not found. Please re-run the application to authenticate.")
-                sys.exit(0)
-            else:
-                logger.info("User chose not to re-authenticate.")
-                print("\nAuthentication is required to update Google Sheets. Exiting.")
-                sys.exit(1)
+            logger.error(f"Google Token Expired: {auth_error}")
+            # In automated mode, we cannot ask to delete the token.
+            print("Google Token likely expired. Please re-generate credentials locally.")
+            sys.exit(1)
         
         except Exception as sheet_error:
             logger.error(f"An error occurred during Google Sheets operation: {str(sheet_error)}", exc_info=True)
@@ -186,80 +153,38 @@ def cli_sync(
     ))
 
 async def run_interactive_sync():
-    """Handles the interactive session to gather parameters and run the sync."""
-    logger.info("Starting interactive sync setup...")
+    """
+    MODIFIED: Handles the sync automatically for GitHub Actions / Cron.
+    Hardcodes choices to avoid 'EOFError' when no user input is available.
+    """
+    logger.info("Starting AUTOMATED sync setup...")
 
-    # Output Type Selection
-    output_type = ""
-    while output_type not in ["csv", "sheets"]:
-        print("\nData output select:")
-        print("1 for local CSV")
-        print("2 for Google Sheets")
-        choice = input("Enter choice (1 or 2): ").strip()
-        if choice == '1':
-            output_type = "csv"
-        elif choice == '2':
-            output_type = "sheets"
-        else:
-            print("Invalid choice. Please enter 1 or 2.")
-
+    # HARDCODED: Always use Sheets
+    output_type = "sheets"
     logger.info(f"Selected output type: {output_type}")
 
     # Load user profiles
     user_profiles = load_user_profiles()
     if not user_profiles:
-        logger.error("No user profiles found in .env file. Please define at least one profile (e.g., USER1_GARMIN_EMAIL=...).")
+        logger.error("No user profiles found in .env file.")
         sys.exit(1)
-    logger.info(f"Loaded {len(user_profiles)} user profiles: {list(user_profiles.keys())}")
+    
+    # HARDCODED: Default to USER1, or the first available profile
+    selected_profile_name = "USER1"
+    if selected_profile_name not in user_profiles:
+        selected_profile_name = list(user_profiles.keys())[0]
 
-    # Profile Selection
-    profile_names = list(user_profiles.keys())
-    print("\nAvailable User Profiles:")
-    for i, name in enumerate(profile_names):
-        email_display = user_profiles[name].get('email', 'Email not found')
-        print(f"{i + 1}. {email_display}")
-
-    selected_profile_index = -1
-    while True:
-        try:
-            choice = input(f"Select profile number (1-{len(profile_names)}): ")
-            selected_profile_index = int(choice) - 1
-            if 0 <= selected_profile_index < len(profile_names):
-                break
-            else:
-                print("Invalid choice. Please enter a number from the list.")
-        except ValueError:
-            print("Invalid input. Please enter a number.")
-
-    selected_profile_name = profile_names[selected_profile_index]
     selected_profile_data = user_profiles[selected_profile_name]
     logger.info(f"Using profile: {selected_profile_name}")
 
-    # Date Input
-    date_format = "%Y-%m-%d"
-    start_date = None
-    end_date = None
-
-    while True:
-        try:
-            start_date_str = input("Enter start date (YYYY-MM-DD): ")
-            start_date = datetime.strptime(start_date_str, date_format).date()
-            break
-        except ValueError:
-            print(f"Invalid date format. Please use {date_format}.")
-
-    while True:
-        try:
-            end_date_str = input("Enter end date (YYYY-MM-DD): ")
-            end_date = datetime.strptime(end_date_str, date_format).date()
-            if end_date >= start_date:
-                break
-            else:
-                print("End date cannot be before start date.")
-        except ValueError:
-            print(f"Invalid date format. Please use {date_format}.")
-
-    logger.info(f"Date range selected: {start_date.strftime(date_format)} to {end_date.strftime(date_format)}")
+    # HARDCODED: Date Selection (Sync Yesterday)
+    # We sync "Yesterday" because if this runs in the morning,
+    # "Today's" data (like sleep) might not be fully finalized yet.
+    # To sync TODAY, change days=1 to days=0.
+    end_date = date.today()
+    start_date = end_date - timedelta(days=1)
+    
+    logger.info(f"Date range selected: {start_date} to {end_date}")
 
     # Call Core Sync Logic
     await sync(
@@ -286,9 +211,7 @@ def main():
             # CLI mode: use typer to parse arguments
             app()
         else:
-            # Interactive mode: run the interactive session
-            print("\nWelcome to GarminGo!")
-            print("Let's help you make data-driven health and longevity decisions by grabbing your Garmin data.")
+            # AUTO mode: run the modified automated session
             asyncio.run(run_interactive_sync())
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")
