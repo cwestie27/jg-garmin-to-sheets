@@ -1,0 +1,37 @@
+name: Daily Garmin Sync
+
+on:
+  schedule:
+    # Runs at 08:00 UTC every day. Adjust as needed.
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allows you to run it manually to test
+
+jobs:
+  sync_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Sync Script
+        env:
+          # These pull from the Secrets you set up in Phase 2
+          USER1_GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          USER1_GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          USER1_SHEET_ID: ${{ secrets.SHEET_ID }}
+          # We write the JSON key to a temporary file so the script can read it
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+        run: |
+          # Create the auth file from the secret
+          echo "$GCP_CREDENTIALS" > service_account.json
+          # Run the script (this assumes the repo uses main.py)
+          python main.py
