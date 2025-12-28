@@ -34,4 +34,4 @@ jobs:
           # Create the auth file from the secret
           echo "$GCP_CREDENTIALS" > service_account.json
           # Run the script (this assumes the repo uses main.py)
-          python main.py
+          python -m src.main
