@@ -2,6 +2,7 @@ from datetime import date
 from typing import Dict, Any, Optional
 import asyncio
 import logging
+import os  # Added for environment variables
 import garminconnect
 from garth.sso import resume_login
 import garth
@@ -25,6 +26,17 @@ class GarminClient:
 
         try:
             def login_wrapper():
+                # --- START OF FIX: Load Tokens if available ---
+                token_secret = os.getenv("GARMIN_TOKENS")
+                if token_secret:
+                    logger.info("Found GARMIN_TOKENS secret. Attempting to load session...")
+                    try:
+                        self.client.garth.loads(token_secret)
+                        logger.info("Session tokens loaded successfully!")
+                    except Exception as e:
+                        logger.error(f"Failed to load tokens: {e}")
+                # --- END OF FIX ---
+
                 return self.client.login()
             
             login_result = await asyncio.get_event_loop().run_in_executor(None, login_wrapper)
@@ -356,50 +368,4 @@ class GarminClient:
                     logger.info("Attempting to fetch profile details via self.client.garth.profile...")
                     # Accessing self.client.garth.profile should trigger garth to fetch it if not already cached,
                     # using the now-authenticated garth client.
-                    profile_data = self.client.garth.profile
-                    
-                    if profile_data:
-                        self.client.display_name = profile_data.get("displayName")
-                        self.client.full_name = profile_data.get("fullName")
-                        self.client.unit_system = profile_data.get("measurementSystem")
-                        logger.info(f"Successfully populated profile details. Display name: {self.client.display_name}, Full name: {self.client.full_name}, Unit system: {self.client.unit_system}")
-                    else:
-                        logger.error("Failed to retrieve profile_data from self.client.garth.profile (it was None or empty).")
-                        raise Exception("Failed to retrieve profile data after MFA.")
-
-                except Exception as e_profile_fetch:
-                    logger.error(f"Error fetching/setting profile details after MFA: {e_profile_fetch}", exc_info=True)
-                    # This is critical for subsequent API calls, so re-raise.
-                    raise Exception(f"Failed to fetch or set profile details after MFA: {e_profile_fetch}")
-            else:
-                logger.error(f"CRITICAL: Failed to find a valid garth.Client in self.mfa_ticket_dict['client'] after resume_login. mfa_ticket_dict['client'] is: {self.mfa_ticket_dict.get('client')}")
-                raise Exception("Critical error: Could not retrieve garth.Client instance from mfa_ticket_dict post MFA for token update.")
-            
-            self._authenticated = True
-            self.mfa_ticket_dict = None # Clear the used MFA ticket dict
-            logger.info("MFA verification successful. Garth client updated with authenticated instance.")
-            return True
-        except (garminconnect.GarminConnectAuthenticationError, garth.exc.GarthException) as e: # Corrected to GarthException
-            self._authenticated = False
-            self._auth_failed = True  # Mark auth as failed to prevent loops
-            error_msg = str(e)
-            logger.error(f"MFA code submission failed: {error_msg}")
-            
-            # Check for rate limiting
-            if "429" in error_msg or "Too Many Requests" in error_msg:
-                raise Exception("Garmin is rate limiting your requests. Please wait 5-10 minutes before trying again. This happens when there are too many authentication attempts in a short period.")
-            elif "Invalid" in error_msg or "invalid" in error_msg:
-                raise Exception("Invalid MFA code. Please check the code and try again.")
-            else:
-                raise Exception(f"MFA code submission failed: {error_msg}")
-        except Exception as e:
-            self._authenticated = False
-            self._auth_failed = True  # Mark auth as failed to prevent loops
-            error_msg = str(e)
-            logger.error(f"An unexpected error occurred during MFA submission: {error_msg}")
-            
-            # Check for rate limiting in generic exceptions too
-            if "429" in error_msg or "Too Many Requests" in error_msg:
-                raise Exception("Garmin is rate limiting your requests. Please wait 5-10 minutes before trying again. This happens when there are too many authentication attempts in a short period.")
-            else:
-                raise Exception(f"An unexpected error occurred during MFA submission: {error_msg}")
+                    profile_data = self.client
