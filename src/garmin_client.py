@@ -32,11 +32,17 @@ class GarminClient:
                     try:
                         self.client.garth.loads(token_secret)
                         logger.info("Session tokens loaded successfully!")
-                        # CRITICAL CHANGE: Return True immediately to skip password login
+                        
+                        # --- NEW FIX FOR 403 ERROR ---
+                        # We must manually fetch the username because we skipped the standard login
+                        self.client.display_name = self.client.garth.profile.get("displayName")
+                        self.client.full_name = self.client.garth.profile.get("fullName")
+                        logger.info(f"Session hydrated for user: {self.client.display_name}")
+                        # -----------------------------
+
                         return True
                     except Exception as e:
                         logger.error(f"Failed to load tokens: {e}")
-                        # If loading failed, we continue down to try password login
                 # --- END OF FIX ---
 
                 return self.client.login()
