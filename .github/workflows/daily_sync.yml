@@ -29,6 +29,7 @@ jobs:
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          GARMIN_TOKENS: ${{ secrets.GARMIN_TOKENS }}
         run: |
           # 1. Create the Auth JSON file
           echo "$GCP_CREDENTIALS" > service_account.json
