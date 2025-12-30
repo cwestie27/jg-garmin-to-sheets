@@ -24,25 +24,25 @@ jobs:
 
       - name: Run Sync Script
         env:
-          # We still load these to write them to the file below
+          # Load secrets into environment variables
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
-          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }} # Assuming this contains the JSON content
           GARMIN_TOKENS: ${{ secrets.GARMIN_TOKENS }}
         run: |
-          # 1. Create the Auth JSON file
-          echo "$GCP_CREDENTIALS" > service_account.json
+          # 1. Create the Google Credentials file (Fixing the "File not found" error)
+          mkdir -p credentials
+          echo "$GCP_CREDENTIALS" > credentials/client_secret.json
 
-          # 2. Create the .env file (The script looks for this specifically)
-          # We use "USER1_" because that is the default profile name in this script
-          echo "USER1_GARMIN_EMAIL=$GARMIN_EMAIL" >> .env
-          echo "USER1_GARMIN_PASSWORD=$GARMIN_PASSWORD" >> .env
+          # 2. Create the .env file with the specific names the script expects
+          # Note: Script looks for USER1_EMAIL, not USER1_GARMIN_EMAIL
+          echo "USER1_EMAIL=$GARMIN_EMAIL" >> .env
+          echo "USER1_PASSWORD=$GARMIN_PASSWORD" >> .env
           echo "USER1_SHEET_ID=$SHEET_ID" >> .env
           
           # 3. Run the script with "Piped" input to bypass the menu
-          # The inputs being sent are:
           # "2"      <- Select Google Sheets
           # "USER1"  <- Select the profile we just made
-          # "N"      <- (Guess) If it asks "Edit dates?", say No to use defaults
+          # "N"      <- If it asks "Edit dates?", say No to use defaults
           printf "2\nUSER1\nN\n" | python -m src.main
