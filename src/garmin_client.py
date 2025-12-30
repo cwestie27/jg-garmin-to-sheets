@@ -32,8 +32,11 @@ class GarminClient:
                     try:
                         self.client.garth.loads(token_secret)
                         logger.info("Session tokens loaded successfully!")
+                        # CRITICAL CHANGE: Return True immediately to skip password login
+                        return True
                     except Exception as e:
                         logger.error(f"Failed to load tokens: {e}")
+                        # If loading failed, we continue down to try password login
                 # --- END OF FIX ---
 
                 return self.client.login()
