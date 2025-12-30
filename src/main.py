@@ -66,7 +66,7 @@ async def sync(profile_prefix="USER1"):
         sheets_client = GoogleSheetsClient(
             credentials_path='credentials/client_secret.json',
             spreadsheet_id=sheet_id,
-            sheet_name="Daily Logs" # Change this if your tab is named differently
+            sheet_name="GarminDaily" # Change this if your tab is named differently
         )
     except Exception as e:
         logger.error(f"Failed to initialize Google Sheets: {e}")
