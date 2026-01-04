@@ -40,12 +40,13 @@ class GarminMetrics:
 
 # 2. The Headers list defines the output order and names
 HEADERS = [
-    "Date", "Sleep Score", "Sleep Length", "HRV (ms)", "HRV Status", "Weight (kg)", "Body Fat %",
+    "Date", "Sleep Score", "Sleep Length", "Sleep Start", "Sleep End",  # Added here
+    "HRV (ms)", "HRV Status", "Weight (kg)", "Body Fat %",
     "Blood Pressure Systolic", "Blood Pressure Diastolic", "Active Calories",
     "Resting Calories", "Resting Heart Rate", "Average Stress", "Training Status",
     "VO2 Max Running", "VO2 Max Cycling", "Intensity Minutes", "All Activity Count",
-    "Running Activity Count", "Running Distance (km)", "Cycling Activity Count",
-    "Cycling Distance (km)", "Strength Activity Count", "Strength Duration",
+    "Running Activity Count", "Running Distance (miles)", "Cycling Activity Count",
+    "Cycling Distance (miles)", "Strength Activity Count", "Strength Duration",
     "Cardio Activity Count", "Cardio Duration",
     "Tennis Activity Count", "Tennis Activity Duration", "Steps"
 ]
@@ -55,6 +56,8 @@ HEADER_TO_ATTRIBUTE_MAP = {
     "Date": "date",
     "Sleep Score": "sleep_score",
     "Sleep Length": "sleep_length",
+    "Sleep Start": "sleep_start", 
+    "Sleep End": "sleep_end",
     "Weight (kg)": "weight", # Note: Changed from weight_kg for simplicity
     "Body Fat %": "body_fat",
     "Blood Pressure Systolic": "blood_pressure_systolic",
@@ -69,8 +72,8 @@ HEADER_TO_ATTRIBUTE_MAP = {
     "Intensity Minutes": "intensity_minutes",
     "All Activity Count": "all_activity_count",
     "Running Activity Count": "running_activity_count",
-    "Running Distance (km)": "running_distance",
-    "Cycling Distance (km)": "cycling_distance",
+    "Running Distance (miles)": "running_distance",
+    "Cycling Distance (miles)": "cycling_distance",
     "Strength Activity Count": "strength_activity_count",
     "Strength Duration": "strength_duration",
     "Cardio Activity Count": "cardio_activity_count",

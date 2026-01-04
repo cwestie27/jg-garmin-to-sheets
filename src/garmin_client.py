@@ -169,10 +169,10 @@ class GarminClient:
 
                     if 'run' in type_key or parent_type_id == 1:
                         running_count += 1
-                        running_distance += activity.get('distance', 0) / 1000
+                        running_distance += activity.get('distance', 0) / 1609.34
                     elif 'virtual_ride' in type_key or 'cycling' in type_key or parent_type_id == 2:
                         cycling_count += 1
-                        cycling_distance += activity.get('distance', 0) / 1000
+                        cycling_distance += activity.get('distance', 0) / 1609.34
                     elif 'strength' in type_key:
                         strength_count += 1
                         strength_duration += activity.get('duration', 0) / 60
