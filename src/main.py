@@ -78,6 +78,8 @@ async def sync(profile_prefix="USER1"):
         metrics.date.isoformat(),
         metrics.sleep_score,
         metrics.sleep_length,
+        metrics.sleep_start,  
+        metrics.sleep_end,    
         metrics.weight,
         metrics.body_fat,
         metrics.resting_heart_rate,
