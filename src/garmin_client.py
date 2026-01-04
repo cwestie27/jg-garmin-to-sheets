@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, Any, Optional
 import asyncio
 import logging
@@ -210,6 +210,15 @@ class GarminClient:
                     sleep_time_seconds = sleep_dto.get('sleepTimeSeconds')
                     if sleep_time_seconds is not None and sleep_time_seconds > 0:
                         sleep_length = sleep_time_seconds / 3600
+                    # --- NEW: Extract and Convert Start/End Times ---
+                    start_unix = sleep_dto.get('sleepStartTimestampGMT')
+                    end_unix = sleep_dto.get('sleepEndTimestampGMT')
+
+                    if start_unix:
+                        # Converts ms to seconds and then to local time string
+                        sleep_start = datetime.fromtimestamp(start_unix / 1000).strftime('%H:%M:%S')
+                    if end_unix:
+                        sleep_end = datetime.fromtimestamp(end_unix / 1000).strftime('%H:%M:%S')
                 else:
                     logger.warning(f"Daily sleep DTO not found for {target_date}")
             else:
@@ -264,6 +273,8 @@ class GarminClient:
                 date=target_date,
                 sleep_score=sleep_score,
                 sleep_length=sleep_length,
+                sleep_start=sleep_start,  
+                sleep_end=sleep_end,
                 weight=weight,
                 body_fat=body_fat,
                 blood_pressure_systolic=blood_pressure_systolic,

@@ -8,6 +8,8 @@ class GarminMetrics:
     date: date
     sleep_score: Optional[float] = None
     sleep_length: Optional[float] = None
+    sleep_start: Optional[str] = None
+    sleep_end: Optional[str] = None
     weight: Optional[float] = None
     body_fat: Optional[float] = None
     blood_pressure_systolic: Optional[int] = None
