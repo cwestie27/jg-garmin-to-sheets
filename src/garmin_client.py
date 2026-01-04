@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import zoneinfo # Add this
 from typing import Dict, Any, Optional
 import asyncio
 import logging
@@ -203,6 +204,11 @@ class GarminClient:
             steps: Optional[int] = None
 
             # Process sleep
+            sleep_score: Optional[float] = None
+            sleep_length: Optional[float] = None
+            sleep_start: Optional[str] = None  
+            sleep_end: Optional[str] = None
+
             if sleep_data:
                 sleep_dto = sleep_data.get('dailySleepDTO', {})
                 if sleep_dto:
@@ -210,20 +216,28 @@ class GarminClient:
                     sleep_time_seconds = sleep_dto.get('sleepTimeSeconds')
                     if sleep_time_seconds is not None and sleep_time_seconds > 0:
                         sleep_length = sleep_time_seconds / 3600
-                    # --- NEW: Extract and Convert Start/End Times ---
+
+                    # --- FIX: Local Timezone Conversion ---
+                    target_tz = zoneinfo.ZoneInfo("America/Chicago") # Change to your zone
+
+                    def to_local_time(ms):
+                        if ms:
+                            # Create UTC object from Garmin's milliseconds
+                            utc_dt = datetime.fromtimestamp(ms / 1000, tz=zoneinfo.ZoneInfo("UTC"))
+                            # Shift to your local zone
+                            return utc_dt.astimezone(target_tz).strftime('%H:%M:%S')
+                        return None
+
                     start_unix = sleep_dto.get('sleepStartTimestampGMT')
                     end_unix = sleep_dto.get('sleepEndTimestampGMT')
-
-                    if start_unix:
-                        # Converts ms to seconds and then to local time string
-                        sleep_start = datetime.fromtimestamp(start_unix / 1000).strftime('%H:%M:%S')
-                    if end_unix:
-                        sleep_end = datetime.fromtimestamp(end_unix / 1000).strftime('%H:%M:%S')
+                    
+                    sleep_start = to_local_time(start_unix)
+                    sleep_end = to_local_time(end_unix)
+                    # --------------------------------------
                 else:
                     logger.warning(f"Daily sleep DTO not found for {target_date}")
             else:
                 logger.warning(f"Sleep data for {target_date} is None")
-
             # Stats (Weight/Body Fat/BP)
             if stats:
                 weight = stats.get('weight', 0) / 1000 if stats.get('weight') else None
