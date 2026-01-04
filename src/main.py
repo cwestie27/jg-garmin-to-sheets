@@ -77,9 +77,9 @@ async def sync(profile_prefix="USER1"):
     row_data = [
         metrics.date.isoformat(),
         metrics.sleep_score,
-        metrics.sleep_length,
         metrics.sleep_start,  
-        metrics.sleep_end,    
+        metrics.sleep_end, 
+        metrics.sleep_length,   
         metrics.weight,
         metrics.body_fat,
         metrics.resting_heart_rate,
